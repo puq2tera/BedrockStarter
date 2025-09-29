@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(BedrockCore)
 
+# Generate compile_commands.json for clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Force use of Clang
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
@@ -22,9 +25,16 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -fsanitize=address -f
 # Find required packages
 find_package(PkgConfig REQUIRED)
 
+# Set Bedrock directory (environment variable or default to submodule)
+set(BEDROCK_DIR $ENV{BEDROCK_DIR})
+if(NOT BEDROCK_DIR)
+    set(BEDROCK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Bedrock")
+endif()
+
 # Set include directories
-include_directories(/app/Bedrock)
-include_directories(/app/Bedrock/libstuff)
+include_directories(${BEDROCK_DIR})
+include_directories(${BEDROCK_DIR}/libstuff)
+include_directories(${BEDROCK_DIR}/mbedtls/include)
 
 # Add source files
 set(SOURCES
@@ -33,23 +43,12 @@ set(SOURCES
 )
 
 # Create shared library for the plugin
-add_library(BedrockCore SHARED ${SOURCES})
+add_library(Core SHARED ${SOURCES})
 
-# Link libraries (you may need to adjust these based on Bedrock's actual linking requirements)
-target_link_libraries(BedrockCore
-    pthread
-    pcre2-8
-    z
-    c++
-    c++abi
-)
-
-# Set output directory
-set_target_properties(BedrockCore PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-)
-
-# Install target
-install(TARGETS BedrockCore
-    LIBRARY DESTINATION /app/server/core/lib
+# Create lib directory and set output directory
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set_target_properties(Core PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/build
+    OUTPUT_NAME "Core"
+    PREFIX ""
 )

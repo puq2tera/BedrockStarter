@@ -70,19 +70,24 @@ RUN --mount=type=cache,target=/var/cache/ccache \
 
 # Copy Core plugin source
 WORKDIR /app
-COPY . core/
+COPY . server/core/
 
 # Build the Core plugin
-WORKDIR /app/core
+WORKDIR /app/server/core
+ENV BEDROCK_DIR=/app/Bedrock
 RUN --mount=type=cache,target=/var/cache/ccache \
+    rm -rf CMakeCache.txt CMakeFiles/ build.ninja .ninja_* lib/ && \
     cmake -G Ninja . && ninja -j $(nproc)
 
 # Set library path for plugin loading
-ENV LD_LIBRARY_PATH=/app/core/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/app/server/core/lib:$LD_LIBRARY_PATH
 
 # Expose Bedrock port
 EXPOSE 8888
 
+# Copy and setup startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Start Bedrock with Core plugin
-WORKDIR /app/Bedrock
-CMD ["./bedrock", "-plugins", "Core", "-pluginDir", "/app/core/lib"]
+CMD ["/app/start.sh"]

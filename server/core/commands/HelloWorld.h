@@ -3,12 +3,12 @@
 #include <BedrockCommand.h>
 
 // Forward declaration
-class Core;
+class BedrockPlugin_Core;
 
 class HelloWorld : public BedrockCommand {
 public:
     // Constructor
-    HelloWorld(SQLiteCommand&& baseCommand, Core* plugin);
+    HelloWorld(SQLiteCommand&& baseCommand, BedrockPlugin_Core* plugin);
     
     // Destructor
     virtual ~HelloWorld();

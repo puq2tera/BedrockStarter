@@ -6,8 +6,8 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ./server/core:/app/core
-      - bedrock_data_1:/app/Bedrock
+      - ./server/core:/app/server/core
+      - bedrock_data_1:/app/data
     environment:
       - NODE_NAME=bedrock-1
       - NODE_ROLE=primary

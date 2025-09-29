@@ -1,19 +1,32 @@
 #include "Core.h"
 #include "commands/HelloWorld.h"
 
-// Static member definitions
-const string Core::_name = "Core";
-const string Core::_version = "1.0.0";
+#include <BedrockServer.h>
 
-Core::Core(BedrockServer& s) : BedrockPlugin(s) {
+#undef SLOGPREFIX
+#define SLOGPREFIX "{" << getName() << "} "
+
+// Static member definitions
+const string BedrockPlugin_Core::name("Core");
+
+const string& BedrockPlugin_Core::getName() const {
+    return name;
+}
+
+// Expose the appropriate function from our shared lib so bedrock can load it
+extern "C" BedrockPlugin_Core* BEDROCK_PLUGIN_REGISTER_CORE(BedrockServer& s) {
+    return new BedrockPlugin_Core(s);
+}
+
+BedrockPlugin_Core::BedrockPlugin_Core(BedrockServer& s) : BedrockPlugin(s) {
     // Initialize the plugin
 }
 
-Core::~Core() {
+BedrockPlugin_Core::~BedrockPlugin_Core() {
     // Cleanup
 }
 
-unique_ptr<BedrockCommand> Core::getCommand(SQLiteCommand&& baseCommand) {
+unique_ptr<BedrockCommand> BedrockPlugin_Core::getCommand(SQLiteCommand&& baseCommand) {
     // Check if this is a command we handle
     if (SIEquals(baseCommand.request.methodLine, "HelloWorld")) {
         return make_unique<HelloWorld>(std::move(baseCommand), this);
@@ -23,15 +36,7 @@ unique_ptr<BedrockCommand> Core::getCommand(SQLiteCommand&& baseCommand) {
     return nullptr;
 }
 
-const string& Core::getName() const {
-    return _name;
-}
-
-const string& Core::getVersion() const {
-    return _version;
-}
-
-// Plugin factory function (required by Bedrock)
-extern "C" BedrockPlugin* createPlugin(BedrockServer& server) {
-    return new Core(server);
+const string& BedrockPlugin_Core::getVersion() const {
+    static const string version = "1.0.0";
+    return version;
 }
