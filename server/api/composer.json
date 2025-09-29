@@ -1,13 +1,21 @@
 {
-    "name": "bedrock-starter/api",
-    "description": "Simple PHP API for Bedrock Starter",
+    "name": "polls/api",
+    "description": "Simple PHP API for polls",
     "type": "project",
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/Expensify/Bedrock-PHP.git"
+        }
+    ],
     "require": {
-        "php": ">=8.4"
+        "php": ">=8.4",
+        "expensify/bedrock-php": "2.0.12",
+        "monolog/monolog": "^2.10"
     },
     "autoload": {
         "psr-4": {
-            "BedrockStarter\\Api\\": "src/"
+            "Polls\\Api\\": ""
         }
     },
     "minimum-stability": "stable",
