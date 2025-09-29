@@ -1,0 +1,71 @@
+services:
+  bedrock-node1:
+    build: .
+    ports:
+      - "80:80"      # PHP API
+      - "8888:8888"  # Bedrock database
+    volumes:
+      # Mount source code for development
+      - ./server:/app/server
+      # Persist database
+      - bedrock_data_1:/app/Bedrock
+    environment:
+      - NODE_NAME=bedrock-node1
+      - NODE_ROLE=primary
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Additional nodes for 3-node cluster (uncomment for distributed setup)
+  # bedrock-node2:
+  #   build: .
+  #   ports:
+  #     - "81:80"      # PHP API on different port
+  #     - "8889:8888"  # Bedrock database
+  #   volumes:
+  #     - ./server:/app/server
+  #     - bedrock_data_2:/app/Bedrock
+  #   environment:
+  #     - NODE_NAME=bedrock-node2
+  #     - NODE_ROLE=follower
+  #     - PEER_NODES=bedrock-node1:8888,bedrock-node3:8888
+  #   depends_on:
+  #     - bedrock-node1
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost/api/status"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   restart: unless-stopped
+
+  # bedrock-node3:
+  #   build: .
+  #   ports:
+  #     - "82:80"      # PHP API on different port
+  #     - "8890:8888"  # Bedrock database
+  #   volumes:
+  #     - ./server:/app/server
+  #     - bedrock_data_3:/app/Bedrock
+  #   environment:
+  #     - NODE_NAME=bedrock-node3
+  #     - NODE_ROLE=follower
+  #     - PEER_NODES=bedrock-node1:8888,bedrock-node2:8888
+  #   depends_on:
+  #     - bedrock-node1
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost/api/status"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   restart: unless-stopped
+
+volumes:
+  bedrock_data_1:
+    driver: local
+  # bedrock_data_2:
+  #   driver: local
+  # bedrock_data_3:
+  #   driver: local
