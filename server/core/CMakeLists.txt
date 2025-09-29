@@ -5,8 +5,8 @@ project(BedrockCore)
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 
-# Set C++ standard to C++23
-set(CMAKE_CXX_STANDARD 23)
+# Set C++ standard to C++20 (matches Bedrock)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -38,7 +38,7 @@ add_library(BedrockCore SHARED ${SOURCES})
 # Link libraries (you may need to adjust these based on Bedrock's actual linking requirements)
 target_link_libraries(BedrockCore
     pthread
-    pcre
+    pcre2-8
     z
     c++
     c++abi

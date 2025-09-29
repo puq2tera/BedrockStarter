@@ -13,11 +13,14 @@ Core::~Core() {
     // Cleanup
 }
 
-void Core::initialize() {
-    // Register commands
-    registerCommand(new HelloWorld(*this));
+unique_ptr<BedrockCommand> Core::getCommand(SQLiteCommand&& baseCommand) {
+    // Check if this is a command we handle
+    if (SIEquals(baseCommand.request.methodLine, "HelloWorld")) {
+        return make_unique<HelloWorld>(std::move(baseCommand), this);
+    }
     
-    SINFO("Core plugin initialized successfully");
+    // Not our command
+    return nullptr;
 }
 
 const string& Core::getName() const {

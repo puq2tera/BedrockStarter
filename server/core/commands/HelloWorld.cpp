@@ -5,7 +5,8 @@
 const string HelloWorld::_name = "HelloWorld";
 const string HelloWorld::_description = "A simple hello world command for the Core plugin";
 
-HelloWorld::HelloWorld(Core& plugin) : BedrockCommand(), _plugin(plugin) {
+HelloWorld::HelloWorld(SQLiteCommand&& baseCommand, Core* plugin) 
+    : BedrockCommand(std::move(baseCommand), plugin) {
     // Initialize the command
 }
 
@@ -13,38 +14,25 @@ HelloWorld::~HelloWorld() {
     // Cleanup
 }
 
-BedrockCommand::RESULT HelloWorld::peekCommand(SQLite& db, BedrockCommand::Command& command) {
+bool HelloWorld::peek(SQLite& db) {
     // This command doesn't need to peek at the database
-    // Return COMPLETE to indicate we should process it
-    return BedrockCommand::RESULT::COMPLETE;
+    // Return false to indicate we don't need to peek
+    return false;
 }
 
-BedrockCommand::RESULT HelloWorld::processCommand(SQLite& db, BedrockCommand::Command& command) {
+void HelloWorld::process(SQLite& db) {
     // Get the name parameter, default to "World"
-    string name = command.request["name"];
+    string name = request["name"];
     if (name.empty()) {
         name = "World";
     }
     
     // Create response
-    SData response;
     response["message"] = "Hello, " + name + "!";
     response["from"] = "Bedrock Core Plugin";
     response["timestamp"] = STimeNow();
-    response["plugin_version"] = _plugin.getVersion();
-    
-    // Set the response
-    command.response = response;
+    response["plugin_name"] = _plugin->getName();
+    response["plugin_version"] = static_cast<Core*>(_plugin)->getVersion();
     
     SINFO("HelloWorld command executed for: " << name);
-    
-    return BedrockCommand::RESULT::COMPLETE;
-}
-
-const string& HelloWorld::getName() const {
-    return _name;
-}
-
-const string& HelloWorld::getDescription() const {
-    return _description;
 }

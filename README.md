@@ -51,33 +51,29 @@ The container runs multiple services managed by systemd:
 - **Features**: JSON responses, CORS headers, error handling
 
 ### ⚙️ **Build System**
-- **C++ Compiler**: Clang 18 (latest LTS)
-- **C++ Standard**: C++23 with libc++
+- **C++ Compiler**: Clang with libc++ (C++20, matches Bedrock)
 - **Linker**: mold (ultra-fast linking)
 - **Build Tool**: CMake + Ninja
+- **Package Manager**: apt-fast (parallel downloads)
+- **Compiler Cache**: ccache (2GB, compressed)
 - **Features**: LTO, sanitizers, modern optimizations
 
 ## Quick Start
 
-### Using Docker
+### Using Docker Compose
 
-1. **Build the container:**
+1. **Start the development environment:**
    ```bash
-   docker build -t bedrock-starter .
+   docker compose up --build
    ```
 
-2. **Run all services:**
-   ```bash
-   docker run -p 80:80 -p 8888:8888 bedrock-starter
-   ```
-
-3. **Test the API:**
+2. **Test the API:**
    ```bash
    curl http://localhost/api/status
    curl http://localhost/api/hello?name=Developer
    ```
 
-4. **Test Bedrock:**
+3. **Test Bedrock:**
    ```bash
    # Basic SQL
    nc localhost 8888
@@ -86,6 +82,37 @@ The container runs multiple services managed by systemd:
    # Custom plugin command
    nc localhost 8888
    HelloWorld name=Developer
+   ```
+
+4. **Stop services:**
+   ```bash
+   docker compose down
+   ```
+
+### 3-Node Cluster Setup
+
+For production-like distributed setup:
+
+1. **Uncomment nodes 2 and 3** in `docker-compose.yml`
+
+2. **Start the cluster:**
+   ```bash
+   docker compose up --build
+   ```
+
+3. **Access different nodes:**
+   ```bash
+   # Node 1 (Primary)
+   curl http://localhost/api/status
+   nc localhost 8888
+   
+   # Node 2 (Follower)  
+   curl http://localhost:81/api/status
+   nc localhost 8889
+   
+   # Node 3 (Follower)
+   curl http://localhost:82/api/status  
+   nc localhost 8890
    ```
 
 ### Example Queries
@@ -137,7 +164,12 @@ case '/api/myendpoint':
 
 3. Rebuild the plugin:
    ```bash
-   docker exec -it <container> bash
+   # Using docker compose (recommended)
+   docker compose build
+   docker compose restart
+   
+   # Or rebuild within running container
+   docker compose exec bedrock-node1 bash
    cd /app/server/core
    ninja
    systemctl restart bedrock
@@ -145,6 +177,25 @@ case '/api/myendpoint':
 
 ### Service Management
 
+**Docker Compose Commands:**
+```bash
+# View logs
+docker compose logs -f
+docker compose logs -f bedrock-node1
+
+# Check service status
+docker compose ps
+docker compose exec bedrock-node1 systemctl status bedrock
+
+# Restart services
+docker compose restart
+docker compose restart bedrock-node1
+
+# Scale cluster (after uncommenting nodes)
+docker compose up --scale bedrock-node2=1 --scale bedrock-node3=1
+```
+
+**Within Container:**
 ```bash
 # Check service status
 systemctl status bedrock
@@ -158,8 +209,20 @@ tail -f /var/log/nginx/api_access.log
 
 ### Build Configuration
 
-The C++ build system uses modern tooling:
-- **Fast compilation**: Clang 18 with optimized flags
-- **Fast linking**: mold linker (5-10x faster than traditional linkers)
+The C++ build system uses cutting-edge tooling for maximum performance:
+
+**Compilation Speed:**
+- **apt-fast**: Parallel package downloads (up to 10x faster)
+- **ccache**: Compiler caching (2GB compressed cache)
+- **Clang**: Modern C++20 compiler with libc++ (matches Bedrock)
+- **mold linker**: Ultra-fast linking (5-10x faster than gold/bfd)
+
+**Build Modes:**
 - **Debug builds**: AddressSanitizer + UndefinedBehaviorSanitizer
 - **Release builds**: Link-time optimization (LTO) for maximum performance
+- **Development**: Live code reloading with Docker volumes
+
+**Performance Benefits:**
+- **First build**: Standard compile time, populates caches
+- **Subsequent builds**: Near-instant with ccache hits
+- **Docker rebuilds**: Persistent caches across container rebuilds

@@ -10,14 +10,14 @@ public:
     // Destructor
     virtual ~Core();
     
-    // Plugin initialization
-    virtual void initialize() override;
+    // Required: Create command from SQLiteCommand
+    virtual unique_ptr<BedrockCommand> getCommand(SQLiteCommand&& baseCommand) override;
     
     // Plugin name
     virtual const string& getName() const override;
     
-    // Plugin version
-    virtual const string& getVersion() const override;
+    // Plugin version (not an override - plugins don't have getVersion in base class)
+    virtual const string& getVersion() const;
     
 private:
     static const string _name;
