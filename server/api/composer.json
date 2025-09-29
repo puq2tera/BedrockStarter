@@ -3,7 +3,7 @@
     "description": "Simple PHP API for Bedrock Starter",
     "type": "project",
     "require": {
-        "php": ">=8.3"
+        "php": ">=8.4"
     },
     "autoload": {
         "psr-4": {

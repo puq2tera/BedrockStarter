@@ -21,8 +21,8 @@ composer install --no-dev --optimize-autoloader
 sleep 2
 
 # Start PHP-FPM
-systemctl start php8.3-fpm
-systemctl enable php8.3-fpm
+systemctl start php8.4-fpm
+systemctl enable php8.4-fpm
 
 # Start nginx
 systemctl start nginx

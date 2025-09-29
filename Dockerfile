@@ -12,10 +12,10 @@ RUN apt-get update && apt-get install -y \
     netcat \
     cmake \
     ninja-build \
-    php8.3-fpm \
-    php8.3-cli \
-    php8.3-json \
-    php8.3-mbstring \
+    php8.4-fpm \
+    php8.4-cli \
+    php8.4-json \
+    php8.4-mbstring \
     nginx \
     systemd \
     systemd-sysv \
@@ -49,7 +49,7 @@ RUN cmake -G Ninja . && ninja
 
 # Setup systemd
 RUN systemctl enable nginx
-RUN systemctl enable php8.3-fpm
+RUN systemctl enable php8.4-fpm
 
 # Expose ports
 EXPOSE 80 8888
