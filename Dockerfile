@@ -12,6 +12,12 @@ RUN apt-get update && apt-get install -y \
     netcat \
     cmake \
     ninja-build \
+    clang-18 \
+    clang++-18 \
+    libc++-18-dev \
+    libc++abi-18-dev \
+    lld-18 \
+    mold \
     php8.4-fpm \
     php8.4-cli \
     php8.4-json \
@@ -22,6 +28,12 @@ RUN apt-get update && apt-get install -y \
     curl \
     unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Set up Clang as default compiler
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100 \
+    && update-alternatives --install /usr/bin/cc cc /usr/bin/clang 100 \
+    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 100
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
