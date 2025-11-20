@@ -18,6 +18,17 @@ echo -e "${BLUE}=========================================="
 echo "Bedrock Starter - Multipass Launcher"
 echo "==========================================${NC}"
 
+# Check if git submodules are initialized
+if [ ! -d "${PROJECT_DIR}/Bedrock" ]; then
+    echo -e "${YELLOW}Bedrock submodule not found. Initializing...${NC}"
+    cd "${PROJECT_DIR}"
+    git submodule update --init --recursive || {
+        echo -e "${RED}Failed to initialize Bedrock submodule${NC}"
+        echo -e "${YELLOW}Please run: git submodule update --init --recursive${NC}"
+        exit 1
+    }
+fi
+
 # Check if Multipass is installed
 if ! command -v multipass &> /dev/null; then
     echo -e "${RED}Multipass is not installed!${NC}"
@@ -55,13 +66,14 @@ fi
 
 # Launch VM with cloud-init (just installs dependencies)
 echo -e "\n${YELLOW}Launching Ubuntu VM (this may take a few minutes)...${NC}"
-multipass launch "${IMAGE}" \
+multipass launch \
     --name "${VM_NAME}" \
     --memory 4G \
     --cpus 4 \
     --disk 20G \
     --cloud-init "${PROJECT_DIR}/multipass.yaml" \
-    --timeout 600
+    --timeout 600 \
+    "${IMAGE}"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Failed to launch VM${NC}"
@@ -73,15 +85,33 @@ echo -e "\n${YELLOW}Waiting for cloud-init to complete...${NC}"
 multipass exec "${VM_NAME}" -- cloud-init status --wait || true
 sleep 5
 
-# Mount project directories for development
+# Try to mount project directories for development
+PROJECT_MOUNT="/bedrock-starter"
 echo -e "\n${YELLOW}Mounting project directories for real-time sync...${NC}"
-multipass mount "${PROJECT_DIR}" "${VM_NAME}:/vagrant" || {
-    echo -e "${YELLOW}Mount failed (may already be mounted). Continuing...${NC}"
-}
+if multipass mount "${PROJECT_DIR}" "${VM_NAME}:${PROJECT_MOUNT}" 2>/dev/null; then
+    echo -e "${GREEN}✓ Mount successful - files will sync in real-time${NC}"
+else
+    echo -e "${YELLOW}⚠ Mount failed - copying files instead (one-time copy)${NC}"
+    echo -e "${YELLOW}  For real-time sync, install multipass-sshfs manually:${NC}"
+    echo -e "${YELLOW}  multipass exec ${VM_NAME} -- sudo snap install multipass-sshfs${NC}"
+    echo -e "${YELLOW}  Then: multipass mount ${PROJECT_DIR} ${VM_NAME}:${PROJECT_MOUNT}${NC}"
+    
+    # Copy project files if mount failed
+    echo -e "\n${YELLOW}Copying project files into VM...${NC}"
+    multipass exec "${VM_NAME}" -- mkdir -p "${PROJECT_MOUNT}"
+    multipass transfer "${PROJECT_DIR}/setup.sh" "${VM_NAME}:${PROJECT_MOUNT}/setup.sh"
+    multipass transfer "${PROJECT_DIR}/server" "${VM_NAME}:${PROJECT_MOUNT}/" || true
+    
+    # Copy Bedrock if it exists (submodule)
+    if [ -d "${PROJECT_DIR}/Bedrock" ]; then
+        echo -e "${YELLOW}Copying Bedrock submodule (this may take a moment)...${NC}"
+        multipass transfer "${PROJECT_DIR}/Bedrock" "${VM_NAME}:${PROJECT_MOUNT}/" || true
+    fi
+fi
 
-# Run the full setup script now that directory is mounted
+# Run the full setup script
 echo -e "\n${YELLOW}Running setup script (this will take 5-10 minutes)...${NC}"
-multipass exec "${VM_NAME}" -- sudo bash /vagrant/setup.sh
+multipass exec "${VM_NAME}" -- sudo bash "${PROJECT_MOUNT}/setup.sh"
 
 # Set up port forwarding
 echo -e "\n${YELLOW}Setting up port forwarding...${NC}"
@@ -139,7 +169,7 @@ echo "  multipass port-forward ${VM_NAME} 8888:8888  # Bedrock"
 echo "  multipass port-forward ${VM_NAME} 80:8080   # API (host:guest)"
 echo ""
 echo -e "${BLUE}Development:${NC}"
-echo "  # Project is mounted at /vagrant in the VM"
+echo "  # Project is mounted at /bedrock-starter in the VM"
 echo "  # Edit files locally - changes sync in real-time!"
 echo "  # After editing C++ code, rebuild:"
 echo "  multipass exec ${VM_NAME} -- bash -c 'cd /opt/bedrock/server/core && ninja'"

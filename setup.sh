@@ -21,7 +21,12 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Get the project directory (where this script is located)
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Default to /bedrock-starter if running in Multipass VM, otherwise use script location
+if [ -d "/bedrock-starter" ] && [ -f "/bedrock-starter/setup.sh" ]; then
+    PROJECT_DIR="/bedrock-starter"
+else
+    PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 BEDROCK_DIR="$PROJECT_DIR/Bedrock"
 CORE_DIR="$PROJECT_DIR/server/core"
 API_DIR="$PROJECT_DIR/server/api"

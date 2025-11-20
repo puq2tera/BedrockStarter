@@ -6,9 +6,12 @@
 package_update: true
 package_upgrade: true
 
-# Install git (needed for submodule initialization)
+# Install git and multipass-sshfs (needed for mounting)
 packages:
   - git
   - curl
   - software-properties-common
 
+# Install multipass-sshfs for file mounting support
+runcmd:
+  - snap install multipass-sshfs || true

@@ -174,7 +174,7 @@ If you prefer to set up on a physical machine or cloud VM:
 
 ### Real-Time File Syncing
 
-Your project directory is automatically mounted at `/vagrant` in the VM, providing **real-time bidirectional sync**:
+Your project directory is automatically mounted at `/bedrock-starter` in the VM, providing **real-time bidirectional sync**:
 
 - Edit files locally in your IDE
 - Changes appear immediately in the VM
@@ -351,7 +351,7 @@ mysql -h $VM_IP -P 8888
 - **Database**: `/var/lib/bedrock/bedrock.db`
 - **Service Config**: `/etc/systemd/system/bedrock.service`
 - **Nginx Config**: `/etc/nginx/sites-available/bedrock-api`
-- **Mounted Project**: `/vagrant/` (synced with host)
+- **Mounted Project**: `/bedrock-starter/` (synced with host)
 - **Logs**: `journalctl -u bedrock` and `/var/log/nginx/`
 
 ## Troubleshooting
@@ -410,7 +410,7 @@ multipass info bedrock-starter
 
 # Remount if needed
 multipass unmount bedrock-starter
-multipass mount . bedrock-starter:/vagrant
+multipass mount . bedrock-starter:/bedrock-starter
 ```
 
 ### Architecture Issues
@@ -464,8 +464,8 @@ If you're familiar with Vagrant, here's the Multipass equivalent:
 | `vagrant halt` | `multipass stop bedrock-starter` |
 | `vagrant destroy` | `multipass delete bedrock-starter --purge` |
 | `vagrant status` | `multipass list` |
-| `vagrant provision` | `multipass exec bedrock-starter -- sudo bash /vagrant/setup.sh` |
-| Synced folders (automatic) | `multipass mount . bedrock-starter:/vagrant` (manual, but real-time) |
+| `vagrant provision` | `multipass exec bedrock-starter -- sudo bash /bedrock-starter/setup.sh` |
+| Synced folders (automatic) | `multipass mount . bedrock-starter:/bedrock-starter` (manual, but real-time) |
 
 ## Resources
 
