@@ -13,6 +13,22 @@ NC='\033[0m' # No Color
 
 VM_NAME="bedrock-starter"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AUTO_YES=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -y|--yes)
+            AUTO_YES=true
+            shift
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            echo "Usage: $0 [-y|--yes]"
+            exit 1
+            ;;
+    esac
+done
 
 echo -e "${BLUE}=========================================="
 echo "Bedrock Starter - Multipass Launcher"
@@ -98,14 +114,39 @@ else
     
     # Copy project files if mount failed
     echo -e "\n${YELLOW}Copying project files into VM...${NC}"
-    multipass exec "${VM_NAME}" -- mkdir -p "${PROJECT_MOUNT}"
+    multipass exec "${VM_NAME}" -- sudo mkdir -p "${PROJECT_MOUNT}"
+    multipass exec "${VM_NAME}" -- sudo chown ubuntu:ubuntu "${PROJECT_MOUNT}"
     multipass transfer "${PROJECT_DIR}/setup.sh" "${VM_NAME}:${PROJECT_MOUNT}/setup.sh"
-    multipass transfer "${PROJECT_DIR}/server" "${VM_NAME}:${PROJECT_MOUNT}/" || true
+
+    # Use tar to transfer directories recursively (multipass transfer doesn't support -r)
+    echo -e "${YELLOW}Transferring server directory...${NC}"
+    tar czf - -C "${PROJECT_DIR}" server | multipass exec "${VM_NAME}" -- tar xzf - -C "${PROJECT_MOUNT}/"
     
     # Copy Bedrock if it exists (submodule)
     if [ -d "${PROJECT_DIR}/Bedrock" ]; then
-        echo -e "${YELLOW}Copying Bedrock submodule (this may take a moment)...${NC}"
-        multipass transfer "${PROJECT_DIR}/Bedrock" "${VM_NAME}:${PROJECT_MOUNT}/" || true
+        echo -e "${YELLOW}Transferring Bedrock submodule (this may take a moment)...${NC}"
+        tar czf - -C "${PROJECT_DIR}" Bedrock | multipass exec "${VM_NAME}" -- tar xzf - -C "${PROJECT_MOUNT}/"
+    fi
+fi
+
+# Prompt user before running setup (unless -y flag is set)
+if [ "$AUTO_YES" = false ]; then
+    echo -e "\n${YELLOW}VM is ready. You can now:${NC}"
+    echo -e "  - Shell into the VM: multipass shell ${VM_NAME}"
+    echo -e "  - Transfer files: multipass transfer <local-file> ${VM_NAME}:<remote-path>"
+    echo -e "  - Install certificates or make other changes"
+    echo ""
+    echo -e "${BLUE}Example: Install SSL certificate${NC}"
+    echo -e "  multipass transfer ~/Expensidev/config/ssl/cloudflare-ca.pem ${VM_NAME}:/tmp/cloudflare.crt"
+    echo -e "  multipass exec ${VM_NAME} -- sudo cp /tmp/cloudflare.crt /usr/local/share/ca-certificates/"
+    echo -e "  multipass exec ${VM_NAME} -- sudo update-ca-certificates"
+    echo ""
+    read -p "Ready to proceed with setup? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Setup cancelled. Run setup manually with:${NC}"
+        echo -e "  multipass exec ${VM_NAME} -- sudo bash ${PROJECT_MOUNT}/setup.sh"
+        exit 0
     fi
 fi
 
