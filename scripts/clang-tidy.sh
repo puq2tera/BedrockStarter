@@ -29,11 +29,12 @@ CLANG_TIDY_VERSION=$(clang-tidy --version | head -n1)
 info "Using: ${CLANG_TIDY_VERSION}"
 
 # Ensure we have compile_commands.json
-cd "${CORE_DIR}"
-if [[ ! -f "compile_commands.json" ]]; then
+BUILD_DIR="${CORE_DIR}/.build"
+mkdir -p "${BUILD_DIR}"
+if [[ ! -f "${BUILD_DIR}/compile_commands.json" ]]; then
     info "compile_commands.json not found, generating..."
-    rm -rf CMakeCache.txt CMakeFiles/ build.ninja .ninja_* || true
-    cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .
+    cd "${BUILD_DIR}"
+    cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 fi
 
 # Run clang-tidy on Core plugin source files (including tests and headers)
@@ -58,7 +59,7 @@ FAILED=0
 for file in ${CPP_FILES}; do
     RELATIVE_FILE="${file#"${PROJECT_DIR}"/}"
     info "Checking ${RELATIVE_FILE}..."
-    if ! clang-tidy -header-filter="${HEADER_FILTER}" -p "${CORE_DIR}" "${file}"; then
+    if ! clang-tidy -header-filter="${HEADER_FILTER}" -p "${BUILD_DIR}" "${file}"; then
         FAILED=1
     fi
 done

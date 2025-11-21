@@ -33,11 +33,5 @@ jobs:
           make bedrock --jobs $(nproc)
 
       - name: Build and run Core plugin tests
-        run: |
-          cd server/core
-          rm -rf CMakeCache.txt CMakeFiles/ build.ninja .ninja_* lib/ build/ || true
-          cmake -G Ninja .
-          ninja -j $(nproc) coretest
-          cd test
-          ./coretest
+        run: ./scripts/test-cpp.sh
 

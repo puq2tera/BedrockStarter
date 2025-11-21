@@ -120,11 +120,10 @@ cp -r "$PROJECT_DIR/server" "$INSTALL_DIR/"
 
 # Build Core plugin
 info "[10/10] Building Core plugin..."
-cd "$INSTALL_DIR/server/core"
 export BEDROCK_DIR="$INSTALL_DIR/Bedrock"
-export LD_LIBRARY_PATH="$INSTALL_DIR/server/core/lib:$LD_LIBRARY_PATH"
-rm -rf CMakeCache.txt CMakeFiles/ build.ninja .ninja_* lib/ build/ || true
-cmake -G Ninja .
+mkdir -p "$INSTALL_DIR/server/core/.build"
+cd "$INSTALL_DIR/server/core/.build"
+cmake -G Ninja ..
 ninja -j "$(nproc)"
 
 # Create bedrock user

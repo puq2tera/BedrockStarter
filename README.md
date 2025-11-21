@@ -29,13 +29,22 @@ BedrockStarter/
 │   ├── config/           # Configuration files
 │   │   ├── nginx.conf    # Web server configuration
 │   │   └── bedrock.service # Bedrock systemd service
-│   ├── core/             # Bedrock Plugin
-│   │   ├── CMakeLists.txt # C++ build configuration
-│   │   ├── Core.h/.cpp   # Main plugin class (extends BedrockPlugin)
-│   │   └── commands/     # Custom Bedrock commands
-│   │       └── HelloWorld.h/.cpp # Example command (extends BedrockCommand)
-│   └── config/           # Systemd service files
-│       └── bedrock.service # Bedrock systemd service
+│   └── core/             # Bedrock Plugin
+│       ├── .build/       # Build artifacts (generated, git-ignored)
+│       │   ├── lib/      # Compiled plugin binaries (Core.so)
+│       │   └── test/     # Test executables (coretest)
+│       ├── .clang-tidy   # C++ linter configuration
+│       ├── CMakeLists.txt # C++ build configuration
+│       ├── Core.h/.cpp   # Main plugin class (extends BedrockPlugin)
+│       ├── commands/     # Custom Bedrock commands
+│       │   ├── HelloWorld.h/.cpp   # Example command
+│       │   ├── CreateMessage.h/.cpp
+│       │   └── GetMessages.h/.cpp
+│       ├── test/         # C++ test suite
+│       │   ├── main.cpp
+│       │   ├── CoreTester.h
+│       │   └── CMakeLists.txt
+│       └── libs/         # (Reserved) Future shared C++ source libraries
 └── README.md
 ```
 
@@ -191,7 +200,10 @@ Your project directory is automatically mounted at `/bedrock-starter` in the VM,
 **C++ Plugin Changes:**
 ```bash
 # Rebuild the Core plugin (using all available CPU cores)
-multipass exec bedrock-starter -- bash -c 'cd /opt/bedrock/server/core && ninja -j $(nproc)'
+multipass exec bedrock-starter -- bash -c 'cd /opt/bedrock/server/core/.build && ninja -j $(nproc)'
+
+# Copy plugin to install location
+multipass exec bedrock-starter -- sudo cp /bedrock-starter/server/core/.build/lib/Core.so /opt/bedrock/server/core/.build/lib/
 
 # Restart Bedrock to load new plugin
 multipass exec bedrock-starter -- sudo systemctl restart bedrock
@@ -455,7 +467,7 @@ multipass exec bedrock-starter -- sudo journalctl -u bedrock -n 50
 
 ```bash
 # Verify plugin library exists
-multipass exec bedrock-starter -- ls -la /opt/bedrock/server/core/lib/Core.so
+multipass exec bedrock-starter -- ls -la /opt/bedrock/server/core/.build/lib/Core.so
 
 # Check LD_LIBRARY_PATH
 multipass exec bedrock-starter -- sudo systemctl show bedrock | grep Environment

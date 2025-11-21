@@ -63,6 +63,7 @@ build.ninja
 # Build directories
 build/
 Build/
+.build/
 debug/
 Debug/
 release/
