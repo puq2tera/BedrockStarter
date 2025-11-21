@@ -3,7 +3,10 @@
 #include <test/lib/BedrockTester.h>
 #include <libstuff/libstuff.h>
 #include <libstuff/SData.h>
-#include "CoreTester.h"
+
+#include "TestHelpers.h"
+#include "tests/HelloWorldTest.h"
+#include "tests/MessagesTest.h"
 
 void cleanup() {
     cout << "Cleaning up test database files...\n";
@@ -25,8 +28,9 @@ void cleanup() {
 int main(int argc, char* argv[]) {
     SData args = SParseCommandLine(argc, argv);
 
-    // Instantiate our tests
-    CoreTester coreTester;
+    // Instantiate test fixtures
+    HelloWorldTest helloWorldTest;
+    MessagesTest messagesTest;
 
     set<string> include;
     set<string> exclude;

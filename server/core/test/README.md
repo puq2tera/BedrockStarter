@@ -13,7 +13,8 @@ Use the helper script:
 Pass arguments (for example, to run a specific test):
 
 ```bash
-./scripts/test-cpp.sh -only Core_HelloWorld
+./scripts/test-cpp.sh -only testHelloWithName
+./scripts/test-cpp.sh -only testCreateAndGet
 ```
 
 Enable verbose logging:
@@ -25,31 +26,49 @@ Enable verbose logging:
 ## Test Structure
 
 - `main.cpp` - Test runner entry point
-- `CoreTester.h` - Test fixtures for Core plugin commands
+- `TestHelpers.h` - Common test utilities and tester creation
+- `tests/` - Individual test files per command/feature
+  - `HelloWorldTest.h` - Tests for HelloWorld command
+  - `MessagesTest.h` - Tests for CreateMessage/GetMessages commands
 - `CMakeLists.txt` - Build configuration
 
 ## Adding Tests
 
-Add new test methods to `CoreTester.h` following the pattern:
+1. Create a new test file in `tests/` (e.g., `MyCommandTest.h`):
 
 ```cpp
-void Core_MyNewTest() {
-    BedrockTester tester = BedrockTester({{"-plugins", "Core"}}, {});
-    
-    SData request("MyCommand");
-    request["param"] = "value";
-    STable response = tester.executeWaitVerifyContentTable(request);
-    
-    ASSERT_EQUAL(response["expected"], "value");
-}
+#pragma once
+#include "../TestHelpers.h"
+
+struct MyCommandTest : tpunit::TestFixture {
+    MyCommandTest()
+        : tpunit::TestFixture(
+            "MyCommandTests",
+            TEST(MyCommandTest::testBasicFunctionality)
+        ) { }
+
+    void testBasicFunctionality() {
+        BedrockTester tester = TestHelpers::createTester();
+        
+        SData request("MyCommand");
+        request["param"] = "value";
+        SData response = tester.executeWaitMultipleData({request}, 1).front();
+        
+        ASSERT_TRUE(SStartsWith(response.methodLine, "200 OK"));
+        ASSERT_EQUAL(response["result"], "expected");
+    }
+};
 ```
 
-Then add the test to the constructor:
+2. Include it in `main.cpp`:
 
 ```cpp
-CoreTester() : tpunit::TestFixture(
-    "Core_HelloWorld, Core_MyNewTest",
-    AFTER(Core_HelloWorld, Core_MyNewTest)
-) { }
+#include "tests/MyCommandTest.h"
+
+int main(int argc, char* argv[]) {
+    // ...
+    MyCommandTest myCommandTest;
+    // ...
+}
 ```
 
