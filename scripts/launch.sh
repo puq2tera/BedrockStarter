@@ -46,6 +46,17 @@ else
     success "Detected x86_64 architecture - Multipass will use x86_64 Ubuntu"
 fi
 
+# Configure networking (Bridged mode on macOS to avoid port 53/WARP conflicts)
+NETWORK_ARGS=""
+if [[ "$(uname)" == "Darwin" ]]; then
+    DEFAULT_IFACE=$(route get default 2>/dev/null | grep interface | awk '{print $2}')
+    if [ -n "$DEFAULT_IFACE" ]; then
+        warn "Detected default network interface: $DEFAULT_IFACE"
+        warn "Using bridged networking to avoid DNS port 53 conflicts (WARP compatible)..."
+        NETWORK_ARGS="--network $DEFAULT_IFACE"
+    fi
+fi
+
 # Check if VM already exists
 if multipass list | grep -q "^${VM_NAME}"; then
     warn "VM '${VM_NAME}' already exists"
@@ -70,6 +81,7 @@ if ! multipass launch \
     --disk 20G \
     --cloud-init "${PROJECT_DIR}/multipass.yaml" \
     --timeout 600 \
+    ${NETWORK_ARGS} \
     "${IMAGE}"; then
     error "Failed to launch VM"
     exit 1
@@ -134,8 +146,8 @@ success "API will be available at: localhost:8080"
 # We'll provide instructions in the output
 
 # Get VM IP
-VM_IP=$(multipass info "${VM_NAME}" | grep "IPv4" | awk '{print $2}')
-success "VM IP address: ${VM_IP}"
+VM_IPS=$(multipass info "${VM_NAME}" | grep "IPv4" | awk -F: '{print $2}' | xargs)
+success "VM IP address(es): ${VM_IPS}"
 
 # Wait for setup to complete
 warn "Waiting for setup to complete (this may take 5-10 minutes)..."
@@ -177,10 +189,10 @@ echo "  multipass exec ${VM_NAME} -- systemctl status bedrock"
 echo
 info "Access Services:"
 echo "  # Bedrock (from host)"
-echo "  nc ${VM_IP} 8888"
+echo "  nc <VM_IP> 8888"
 echo
 echo "  # API (from host)"
-echo "  curl http://${VM_IP}/api/status"
+echo "  curl http://<VM_IP>/api/status"
 echo
 info "Port Forwarding (optional):"
 echo "  # To access from localhost instead of VM IP:"
