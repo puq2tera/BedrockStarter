@@ -88,7 +88,7 @@ fi
 
 # Clone/build Bedrock
 info "[8/10] Building Bedrock..."
-if [ ! -d "$BEDROCK_DIR" ]; then
+if [[ ! -d "$BEDROCK_DIR" ]]; then
     error "Bedrock directory not found at $BEDROCK_DIR"
     warn "Please ensure Bedrock is cloned as a git submodule:"
     echo "  git submodule update --init --recursive"

@@ -31,7 +31,7 @@ error() {
 # Returns: Absolute path to project root
 get_project_dir() {
     # If running in Multipass VM, check for mounted directory first
-    if [ -d "/bedrock-starter" ] && [ -f "/bedrock-starter/scripts/setup.sh" ]; then
+    if [[ -d "/bedrock-starter" ]] && [[ -f "/bedrock-starter/scripts/setup.sh" ]]; then
         echo "/bedrock-starter"
         return
     fi
@@ -46,7 +46,7 @@ get_project_dir() {
 # Usage: check_root
 # Exits with error if not root
 check_root() {
-    if [ "$EUID" -ne 0 ]; then
+    if [[ "$EUID" -ne 0 ]]; then
         error "Please run as root (use sudo)"
         exit 1
     fi

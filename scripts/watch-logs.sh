@@ -56,13 +56,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 print_header "Watching ${SERVICE} logs"
-if [ -n "$FILTER" ]; then
+if [[ -n "$FILTER" ]]; then
     info "Filter: ${FILTER}"
 fi
 echo
 
 # Check if we're on the host (need multipass) or in the VM
-if [ -d "/bedrock-starter" ] && [ -f "/bedrock-starter/scripts/setup.sh" ]; then
+if [[ -d "/bedrock-starter" ]] && [[ -f "/bedrock-starter/scripts/setup.sh" ]]; then
     # We're in the VM
     IN_VM=true
 else
@@ -81,21 +81,21 @@ fi
 tail_logs() {
     case "$SERVICE" in
         bedrock)
-            if [ "$IN_VM" = true ]; then
+            if [[ "$IN_VM" == true ]]; then
                 CMD="journalctl -u bedrock -n ${LINES} -f --no-pager"
             else
                 CMD="multipass exec bedrock-starter -- sudo journalctl -u bedrock -n ${LINES} -f --no-pager"
             fi
             ;;
         nginx)
-            if [ "$IN_VM" = true ]; then
+            if [[ "$IN_VM" == true ]]; then
                 CMD="tail -n ${LINES} -f /var/log/nginx/api_error.log"
             else
                 CMD="multipass exec bedrock-starter -- sudo tail -n ${LINES} -f /var/log/nginx/api_error.log"
             fi
             ;;
         php|php8.4-fpm)
-            if [ "$IN_VM" = true ]; then
+            if [[ "$IN_VM" == true ]]; then
                 CMD="journalctl -u php8.4-fpm -n ${LINES} -f --no-pager"
             else
                 CMD="multipass exec bedrock-starter -- sudo journalctl -u php8.4-fpm -n ${LINES} -f --no-pager"
@@ -109,7 +109,7 @@ tail_logs() {
     esac
 
     # Apply filter if specified
-    if [ -n "$FILTER" ]; then
+    if [[ -n "$FILTER" ]]; then
         eval "$CMD" | grep --color=always -E "$FILTER"
     else
         # Add color to output using ccze if available, otherwise use grep for basic coloring

@@ -14,7 +14,7 @@ PROJECT_DIR=$(get_project_dir)
 print_header "Bedrock Starter - Multipass Launcher"
 
 # Check if git submodules are initialized
-if [ ! -d "${PROJECT_DIR}/Bedrock" ]; then
+if [[ ! -d "${PROJECT_DIR}/Bedrock" ]]; then
     warn "Bedrock submodule not found. Initializing..."
     cd "${PROJECT_DIR}"
     git submodule update --init --recursive || {
@@ -25,7 +25,7 @@ if [ ! -d "${PROJECT_DIR}/Bedrock" ]; then
 fi
 
 # Generate .clangd from .clangd.example if it doesn't exist
-if [ ! -f "${PROJECT_DIR}/.clangd" ] && [ -f "${PROJECT_DIR}/.clangd.example" ]; then
+if [[ ! -f "${PROJECT_DIR}/.clangd" ]] && [[ -f "${PROJECT_DIR}/.clangd.example" ]]; then
     info "Generating .clangd from template..."
     sed "s|{{PROJECT_ROOT}}|${PROJECT_DIR}|g" "${PROJECT_DIR}/.clangd.example" > "${PROJECT_DIR}/.clangd"
     success "✓ Created .clangd with project-specific paths"
@@ -47,13 +47,13 @@ else
 fi
 
 # Configure networking (Bridged mode on macOS to avoid port 53/WARP conflicts)
-NETWORK_ARGS=""
+NETWORK_ARGS=()
 if [[ "$(uname)" == "Darwin" ]]; then
     DEFAULT_IFACE=$(route get default | grep interface | awk '{print $2}')
-    if [ -n "$DEFAULT_IFACE" ]; then
+    if [[ -n "$DEFAULT_IFACE" ]]; then
         info "Detected default network interface: $DEFAULT_IFACE"
         info "Using bridged networking to avoid DNS port 53 conflicts (WARP compatible)..."
-        NETWORK_ARGS="--network $DEFAULT_IFACE"
+        NETWORK_ARGS=("--network" "$DEFAULT_IFACE")
     fi
 fi
 
@@ -81,7 +81,7 @@ if ! multipass launch \
     --disk 20G \
     --cloud-init "${PROJECT_DIR}/multipass.yaml" \
     --timeout 600 \
-    ${NETWORK_ARGS} \
+    "${NETWORK_ARGS[@]}" \
     "${IMAGE}"; then
     error "Failed to launch VM"
     exit 1
@@ -94,7 +94,7 @@ sleep 5
 
 # Set as primary if no primary exists (allows 'multipass shell' without name)
 PRIMARY_NAME=$(multipass get client.primary-name || echo "")
-if [ -z "$PRIMARY_NAME" ] || [ "$PRIMARY_NAME" = "None" ] || [ "$PRIMARY_NAME" = "primary" ]; then
+if [[ -z "$PRIMARY_NAME" ]] || [[ "$PRIMARY_NAME" == "None" ]] || [[ "$PRIMARY_NAME" == "primary" ]]; then
     info "Setting ${VM_NAME} as primary instance..."
     if multipass set client.primary-name="${VM_NAME}"; then
         success "✓ You can now use 'multipass shell' without specifying the VM name"

@@ -14,7 +14,7 @@ info "Project directory: ${PROJECT_DIR}"
 
 cd "${CORE_DIR}"
 
-if [ ! -f "${PROJECT_DIR}/Bedrock/libbedrock.a" ]; then
+if [[ ! -f "${PROJECT_DIR}/Bedrock/libbedrock.a" ]]; then
     warn "Bedrock library not found. Building Bedrock (this may take a while)..."
     pushd "${PROJECT_DIR}/Bedrock" > /dev/null
     make bedrock --jobs "$(nproc)"

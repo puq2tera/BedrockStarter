@@ -6,7 +6,7 @@ set -e
 
 # shellcheck source=scripts/common.sh
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+if [[ -f "${SCRIPT_DIR}/common.sh" ]]; then
     source "${SCRIPT_DIR}/common.sh"
     print_header "Installing C++ Build Dependencies"
 else
@@ -58,7 +58,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Add VM packages if requested
-if [ "${INCLUDE_VM_DEPS}" = true ]; then
+if [[ "${INCLUDE_VM_DEPS}" == true ]]; then
     PACKAGES+=("${VM_PACKAGES[@]}")
 fi
 
@@ -72,7 +72,7 @@ else
     apt-get install -y "${PACKAGES[@]}"
 fi
 
-if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+if [[ -f "${SCRIPT_DIR}/common.sh" ]]; then
     success "C++ build dependencies installed"
 else
     echo "✓ C++ build dependencies installed"

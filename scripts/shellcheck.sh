@@ -26,7 +26,7 @@ while IFS= read -r -d '' script; do
     SCRIPTS+=("$script")
 done < <(find "${PROJECT_DIR}/scripts" -name "*.sh" -type f -print0 2>/dev/null)
 
-if [ ${#SCRIPTS[@]} -eq 0 ]; then
+if [[ ${#SCRIPTS[@]} -eq 0 ]]; then
     warn "No shell scripts found in scripts/ directory"
     exit 0
 fi
@@ -41,7 +41,7 @@ for script in "${SCRIPTS[@]}"; do
 done
 
 echo
-if [ $ERRORS -eq 0 ]; then
+if [[ $ERRORS -eq 0 ]]; then
     success "✓ All scripts passed shellcheck"
     exit 0
 else

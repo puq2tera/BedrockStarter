@@ -30,7 +30,7 @@ info "Using: ${CLANG_TIDY_VERSION}"
 
 # Ensure we have compile_commands.json
 cd "${CORE_DIR}"
-if [ ! -f "compile_commands.json" ]; then
+if [[ ! -f "compile_commands.json" ]]; then
     info "compile_commands.json not found, generating..."
     rm -rf CMakeCache.txt CMakeFiles/ build.ninja .ninja_* || true
     cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .
@@ -43,7 +43,7 @@ echo
 # Find all .cpp files in the core directory (excluding test directory)
 CPP_FILES=$(find "${CORE_DIR}" -name "*.cpp" -not -path "*/test/*" -not -path "*/CMakeFiles/*")
 
-if [ -z "${CPP_FILES}" ]; then
+if [[ -z "${CPP_FILES}" ]]; then
     warn "No C++ files found to analyze"
     exit 0
 fi
@@ -59,7 +59,7 @@ for file in ${CPP_FILES}; do
 done
 
 echo
-if [ ${FAILED} -eq 0 ]; then
+if [[ ${FAILED} -eq 0 ]]; then
     success "Clang-tidy checks passed!"
 else
     error "Clang-tidy found issues"
