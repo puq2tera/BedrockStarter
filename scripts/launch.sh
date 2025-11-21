@@ -49,7 +49,7 @@ fi
 # Configure networking (Bridged mode on macOS to avoid port 53/WARP conflicts)
 NETWORK_ARGS=""
 if [[ "$(uname)" == "Darwin" ]]; then
-    DEFAULT_IFACE=$(route get default 2>/dev/null | grep interface | awk '{print $2}')
+    DEFAULT_IFACE=$(route get default | grep interface | awk '{print $2}')
     if [ -n "$DEFAULT_IFACE" ]; then
         info "Detected default network interface: $DEFAULT_IFACE"
         info "Using bridged networking to avoid DNS port 53 conflicts (WARP compatible)..."
@@ -60,7 +60,7 @@ fi
 # Check if VM already exists
 if multipass list | grep -q "^${VM_NAME}"; then
     warn "VM '${VM_NAME}' already exists"
-    read -p "Delete and recreate? (y/N): " -n 1 -r
+    read -p "Delete and recreate? (y/n): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         info "Deleting existing VM..."
@@ -93,10 +93,10 @@ multipass exec "${VM_NAME}" -- cloud-init status --wait || true
 sleep 5
 
 # Set as primary if no primary exists (allows 'multipass shell' without name)
-PRIMARY_NAME=$(multipass get client.primary-name 2>/dev/null || echo "")
-if [ -z "$PRIMARY_NAME" ] || [ "$PRIMARY_NAME" = "None" ]; then
+PRIMARY_NAME=$(multipass get client.primary-name || echo "")
+if [ -z "$PRIMARY_NAME" ] || [ "$PRIMARY_NAME" = "None" ] || [ "$PRIMARY_NAME" = "primary" ]; then
     info "Setting ${VM_NAME} as primary instance..."
-    if multipass set client.primary-name="${VM_NAME}" >/dev/null 2>&1; then
+    if multipass set client.primary-name="${VM_NAME}"; then
         success "✓ You can now use 'multipass shell' without specifying the VM name"
     else
         error "Failed to set primary instance. Run 'multipass set client.primary-name=${VM_NAME}' manually to investigate."
@@ -106,21 +106,21 @@ fi
 
 # Prepare project directory mount for development
 PROJECT_MOUNT="/bedrock-starter"
-info "Ensuring multipass-sshfs is installed inside the VM (required for mounts)..."
-if multipass exec "${VM_NAME}" -- snap list multipass-sshfs >/dev/null 2>&1; then
-    success "✓ multipass-sshfs already installed"
+info "Installing multipass-sshfs inside the VM (required for mounts)..."
+if multipass exec "${VM_NAME}" -- sudo snap install multipass-sshfs; then
+    success "✓ multipass-sshfs installed"
 else
-    info "Installing multipass-sshfs..."
-    if multipass exec "${VM_NAME}" -- sudo snap install multipass-sshfs >/dev/null 2>&1; then
-        success "✓ multipass-sshfs installed"
+    warn "snap install failed, attempting snap refresh..."
+    if multipass exec "${VM_NAME}" -- sudo snap refresh multipass-sshfs; then
+        success "✓ multipass-sshfs refreshed"
     else
-        error "Failed to install multipass-sshfs automatically. Ensure the VM has internet access, then rerun this script."
+        error "Failed to install or refresh multipass-sshfs. Ensure the VM has internet access, then rerun this script."
         exit 1
     fi
 fi
 
 info "Mounting project directories for real-time sync..."
-if multipass mount "${PROJECT_DIR}" "${VM_NAME}:${PROJECT_MOUNT}" 2>/dev/null; then
+if multipass mount "${PROJECT_DIR}" "${VM_NAME}:${PROJECT_MOUNT}"; then
     success "✓ Mount successful - files will sync in real-time"
 else
     error "Unable to mount ${PROJECT_DIR} to ${VM_NAME}:${PROJECT_MOUNT}. Confirm multipassd has Full Disk Access and rerun."
@@ -129,6 +129,7 @@ fi
 
 # Run the full setup script
 info "Running setup script (this will take 5-10 minutes)..."
+info "Monitor progress in another terminal with: multipass exec ${VM_NAME} -- tail -f /var/log/cloud-init-output.log"
 multipass exec "${VM_NAME}" -- sudo bash "${PROJECT_MOUNT}/scripts/setup.sh"
 
 # Set up port forwarding
@@ -143,27 +144,23 @@ success "API will be available at: localhost:8080"
 VM_IPS=$(multipass info "${VM_NAME}" | grep "IPv4" | awk -F: '{print $2}' | xargs)
 success "VM IP address(es): ${VM_IPS}"
 
-# Wait for setup to complete
-info "Waiting for setup to complete (this may take 5-10 minutes)..."
-info "You can monitor progress with: multipass exec ${VM_NAME} -- tail -f /var/log/cloud-init-output.log"
-
 # Check if services are running
 info "Checking service status..."
 sleep 10
 
-if multipass exec "${VM_NAME}" -- systemctl is-active bedrock > /dev/null 2>&1; then
+if multipass exec "${VM_NAME}" -- systemctl is-active bedrock; then
     success "✓ Bedrock service is running"
 else
     warn "⚠ Bedrock service may still be starting..."
 fi
 
-if multipass exec "${VM_NAME}" -- systemctl is-active php8.4-fpm > /dev/null 2>&1; then
+if multipass exec "${VM_NAME}" -- systemctl is-active php8.4-fpm; then
     success "✓ PHP-FPM service is running"
 else
     warn "⚠ PHP-FPM service may still be starting..."
 fi
 
-if multipass exec "${VM_NAME}" -- systemctl is-active nginx > /dev/null 2>&1; then
+if multipass exec "${VM_NAME}" -- systemctl is-active nginx; then
     success "✓ Nginx service is running"
 else
     warn "⚠ Nginx service may still be starting..."
