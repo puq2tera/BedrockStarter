@@ -63,16 +63,14 @@ fi
 
 # Launch VM with cloud-init (just installs dependencies)
 warn "Launching Ubuntu VM (this may take a few minutes)..."
-multipass launch \
+if ! multipass launch \
     --name "${VM_NAME}" \
     --memory 4G \
     --cpus 4 \
     --disk 20G \
     --cloud-init "${PROJECT_DIR}/multipass.yaml" \
     --timeout 600 \
-    "${IMAGE}"
-
-if [ $? -ne 0 ]; then
+    "${IMAGE}"; then
     error "Failed to launch VM"
     exit 1
 fi
@@ -147,17 +145,23 @@ warn "You can monitor progress with: multipass exec ${VM_NAME} -- tail -f /var/l
 warn "Checking service status..."
 sleep 10
 
-multipass exec "${VM_NAME}" -- systemctl is-active bedrock > /dev/null 2>&1 && \
-    success "✓ Bedrock service is running" || \
+if multipass exec "${VM_NAME}" -- systemctl is-active bedrock > /dev/null 2>&1; then
+    success "✓ Bedrock service is running"
+else
     warn "⚠ Bedrock service may still be starting..."
+fi
 
-multipass exec "${VM_NAME}" -- systemctl is-active php8.4-fpm > /dev/null 2>&1 && \
-    success "✓ PHP-FPM service is running" || \
+if multipass exec "${VM_NAME}" -- systemctl is-active php8.4-fpm > /dev/null 2>&1; then
+    success "✓ PHP-FPM service is running"
+else
     warn "⚠ PHP-FPM service may still be starting..."
+fi
 
-multipass exec "${VM_NAME}" -- systemctl is-active nginx > /dev/null 2>&1 && \
-    success "✓ Nginx service is running" || \
+if multipass exec "${VM_NAME}" -- systemctl is-active nginx > /dev/null 2>&1; then
+    success "✓ Nginx service is running"
+else
     warn "⚠ Nginx service may still be starting..."
+fi
 
 echo
 success "=========================================="
