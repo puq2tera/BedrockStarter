@@ -18,8 +18,10 @@ This starter project provides a complete development environment:
 ```
 BedrockStarter/
 ├── multipass.yaml        # Multipass cloud-init configuration
-├── launch.sh             # Cross-platform VM launcher script
-├── setup.sh              # Manual installation script (for non-Multipass setups)
+├── scripts/              # Shell scripts
+│   ├── launch.sh         # Cross-platform VM launcher script
+│   ├── setup.sh          # Manual installation script (for non-Multipass setups)
+│   └── common.sh          # Common shell utilities
 ├── server/
 │   ├── api/              # PHP API Service
 │   │   ├── nginx.conf   # Web server configuration
@@ -91,7 +93,7 @@ Multipass is Canonical's official VM solution that works identically on Linux, m
 
 3. **Launch the VM:**
    ```bash
-   ./launch.sh
+   ./scripts/launch.sh
    ```
    
    This will:
@@ -154,7 +156,7 @@ If you prefer to set up on a physical machine or cloud VM:
 
 2. **Run the setup script:**
    ```bash
-   sudo ./setup.sh
+   sudo ./scripts/setup.sh
    ```
 
 3. **Start services:**
@@ -460,12 +462,12 @@ If you're familiar with Vagrant, here's the Multipass equivalent:
 
 | Vagrant Command | Multipass Equivalent |
 |----------------|---------------------|
-| `vagrant up` | `./launch.sh` or `multipass launch` |
+| `vagrant up` | `./scripts/launch.sh` or `multipass launch` |
 | `vagrant ssh` | `multipass shell bedrock-starter` |
 | `vagrant halt` | `multipass stop bedrock-starter` |
 | `vagrant destroy` | `multipass delete bedrock-starter --purge` |
 | `vagrant status` | `multipass list` |
-| `vagrant provision` | `multipass exec bedrock-starter -- sudo bash /bedrock-starter/setup.sh` |
+| `vagrant provision` | `multipass exec bedrock-starter -- sudo bash /bedrock-starter/scripts/setup.sh` |
 | Synced folders (automatic) | `multipass mount . bedrock-starter:/bedrock-starter` (manual, but real-time) |
 
 ## Resources

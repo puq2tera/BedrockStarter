@@ -4,44 +4,32 @@
 
 set -e
 
-echo "=========================================="
-echo "Bedrock Starter Setup Script"
-echo "=========================================="
+# Source common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/common.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+print_header "Bedrock Starter Setup Script"
 
 # Check if running as root
-if [ "$EUID" -ne 0 ]; then 
-    echo -e "${RED}Please run as root (use sudo)${NC}"
-    exit 1
-fi
+check_root
 
-# Get the project directory (where this script is located)
-# Default to /bedrock-starter if running in Multipass VM, otherwise use script location
-if [ -d "/bedrock-starter" ] && [ -f "/bedrock-starter/setup.sh" ]; then
-    PROJECT_DIR="/bedrock-starter"
-else
-    PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-fi
+# Get the project directory
+PROJECT_DIR=$(get_project_dir)
 BEDROCK_DIR="$PROJECT_DIR/Bedrock"
 CORE_DIR="$PROJECT_DIR/server/core"
 API_DIR="$PROJECT_DIR/server/api"
 INSTALL_DIR="/opt/bedrock"
 DATA_DIR="/var/lib/bedrock"
 
-echo -e "${GREEN}Project directory: $PROJECT_DIR${NC}"
-echo -e "${GREEN}Install directory: $INSTALL_DIR${NC}"
+success "Project directory: $PROJECT_DIR"
+success "Install directory: $INSTALL_DIR"
 
 # Update package lists
-echo -e "\n${YELLOW}[1/10] Updating package lists...${NC}"
+warn "[1/10] Updating package lists..."
 apt-get update
 
 # Install apt-fast for faster package downloads
-echo -e "\n${YELLOW}[2/10] Installing apt-fast...${NC}"
+warn "[2/10] Installing apt-fast..."
 if ! command -v apt-fast &> /dev/null; then
     apt-get install -y software-properties-common
     add-apt-repository ppa:apt-fast/stable -y
@@ -52,11 +40,11 @@ if ! command -v apt-fast &> /dev/null; then
     echo 'apt-fast apt-fast/aptmanager string apt-get' | debconf-set-selections
     apt-get install -y apt-fast
 else
-    echo -e "${GREEN}apt-fast already installed${NC}"
+    success "apt-fast already installed"
 fi
 
 # Install Bedrock dependencies
-echo -e "\n${YELLOW}[3/10] Installing Bedrock dependencies...${NC}"
+warn "[3/10] Installing Bedrock dependencies..."
 apt-fast install -y \
     libpcre2-dev \
     zlib1g-dev \
@@ -75,12 +63,12 @@ apt-fast install -y \
     sqlite3
 
 # Set up Clang as default compiler
-echo -e "\n${YELLOW}[4/10] Configuring Clang compiler...${NC}"
+warn "[4/10] Configuring Clang compiler..."
 update-alternatives --install /usr/bin/cc cc /usr/bin/clang 100 || true
 update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 100 || true
 
 # Configure ccache
-echo -e "\n${YELLOW}[5/10] Configuring ccache...${NC}"
+warn "[5/10] Configuring ccache..."
 ccache --set-config=max_size=2G || true
 ccache --set-config=compression=true || true
 ccache --set-config=cache_dir=/var/cache/ccache || true
@@ -95,7 +83,7 @@ ln -sf /usr/bin/ccache /usr/lib/ccache/gcc || true
 ln -sf /usr/bin/ccache /usr/lib/ccache/g++ || true
 
 # Install PHP and nginx
-echo -e "\n${YELLOW}[6/10] Installing PHP 8.4 and nginx...${NC}"
+warn "[6/10] Installing PHP 8.4 and nginx..."
 add-apt-repository ppa:ondrej/php -y
 apt-get update
 apt-fast install -y \
@@ -106,19 +94,19 @@ apt-fast install -y \
     curl
 
 # Install Composer
-echo -e "\n${YELLOW}[7/10] Installing Composer...${NC}"
+warn "[7/10] Installing Composer..."
 if ! command -v composer &> /dev/null; then
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 else
-    echo -e "${GREEN}Composer already installed${NC}"
+    success "Composer already installed"
 fi
 
 # Clone/build Bedrock
-echo -e "\n${YELLOW}[8/10] Building Bedrock...${NC}"
+warn "[8/10] Building Bedrock..."
 if [ ! -d "$BEDROCK_DIR" ]; then
-    echo -e "${RED}Bedrock directory not found at $BEDROCK_DIR${NC}"
-    echo -e "${YELLOW}Please ensure Bedrock is cloned as a git submodule:${NC}"
-    echo -e "  git submodule update --init --recursive"
+    error "Bedrock directory not found at $BEDROCK_DIR"
+    warn "Please ensure Bedrock is cloned as a git submodule:"
+    echo "  git submodule update --init --recursive"
     exit 1
 fi
 
@@ -131,23 +119,23 @@ make clean || true
 make bedrock --jobs "$(nproc)"
 
 # Verify sqlite3 CLI tool (used for manual maintenance tasks like VACUUM)
-echo -e "\n${YELLOW}Verifying sqlite3 CLI tool...${NC}"
+warn "Verifying sqlite3 CLI tool..."
 if command -v sqlite3 &> /dev/null; then
     SQLITE_VERSION=$(sqlite3 --version 2>/dev/null | awk '{print $1}' || echo "")
-    echo -e "${GREEN}✓ sqlite3 CLI available (version ${SQLITE_VERSION})${NC}"
+    success "✓ sqlite3 CLI available (version ${SQLITE_VERSION})"
 else
-    echo -e "${RED}✗ sqlite3 not found even after installation. Please install sqlite3 manually and re-run setup.${NC}"
+    error "✗ sqlite3 not found even after installation. Please install sqlite3 manually and re-run setup."
     exit 1
 fi
 
 # Create installation directory structure
-echo -e "\n${YELLOW}[9/10] Setting up installation directories...${NC}"
+warn "[9/10] Setting up installation directories..."
 mkdir -p "$INSTALL_DIR"
 cp -r "$BEDROCK_DIR" "$INSTALL_DIR/"
 cp -r "$PROJECT_DIR/server" "$INSTALL_DIR/"
 
 # Build Core plugin
-echo -e "\n${YELLOW}[10/10] Building Core plugin...${NC}"
+warn "[10/10] Building Core plugin..."
 cd "$INSTALL_DIR/server/core"
 export BEDROCK_DIR="$INSTALL_DIR/Bedrock"
 export LD_LIBRARY_PATH="$INSTALL_DIR/server/core/lib:$LD_LIBRARY_PATH"
@@ -156,7 +144,7 @@ cmake -G Ninja .
 ninja -j "$(nproc)"
 
 # Create bedrock user
-echo -e "\n${YELLOW}Creating bedrock user...${NC}"
+warn "Creating bedrock user..."
 if ! id "bedrock" &>/dev/null; then
     useradd -r -s /bin/false -d /opt/bedrock bedrock
 fi
@@ -171,35 +159,36 @@ chown bedrock:bedrock "$DATA_DIR"
 chmod 755 "$DATA_DIR"
 
 # Install systemd service
-echo -e "\n${YELLOW}Installing systemd service...${NC}"
+warn "Installing systemd service..."
 cp "$PROJECT_DIR/server/config/bedrock.service" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable bedrock.service
 
 # Configure nginx
-echo -e "\n${YELLOW}Configuring nginx...${NC}"
+warn "Configuring nginx..."
 cp "$API_DIR/nginx.conf" /etc/nginx/sites-available/bedrock-api
 ln -sf /etc/nginx/sites-available/bedrock-api /etc/nginx/sites-enabled/bedrock-api
 rm -f /etc/nginx/sites-enabled/default
 systemctl enable nginx.service
 
 # Install PHP dependencies
-echo -e "\n${YELLOW}Installing PHP dependencies...${NC}"
+warn "Installing PHP dependencies..."
 cd "$INSTALL_DIR/server/api"
 composer install --no-dev --optimize-autoloader
 
 # Set permissions for PHP files
 chown -R www-data:www-data "$INSTALL_DIR/server/api"
 
-echo -e "\n${GREEN}=========================================="
-echo "Setup complete!"
-echo "==========================================${NC}"
+echo
+success "=========================================="
+success "Setup complete!"
+success "=========================================="
 echo
 echo "To start services:"
 echo "  sudo systemctl start bedrock"
 echo "  sudo systemctl start php8.4-fpm"
 echo "  sudo systemctl start nginx"
-echo ""
+echo
 echo "To check status:"
 echo "  sudo systemctl status bedrock"
 echo "  sudo systemctl status php8.4-fpm"
