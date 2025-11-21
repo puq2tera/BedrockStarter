@@ -1,0 +1,36 @@
+name: Clang-Tidy
+
+on:
+  pull_request:
+    paths:
+      - 'server/core/**/*.cpp'
+      - 'server/core/**/*.h'
+      - 'server/core/**/CMakeLists.txt'
+      - 'scripts/clang-tidy.sh'
+      - '.github/workflows/clang-tidy.yml'
+
+jobs:
+  clang-tidy:
+    name: Run clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-tidy \
+            cmake \
+            ninja-build \
+            clang \
+            libpcre2-dev \
+            libssl-dev \
+            pkg-config
+
+      - name: Run clang-tidy
+        run: ./scripts/clang-tidy.sh
+

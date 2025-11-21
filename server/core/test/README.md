@@ -7,19 +7,19 @@ Basic test suite for the Bedrock Core plugin.
 Use the host helper script:
 
 ```bash
-./scripts/test.sh
+./scripts/test-cpp.sh
 ```
 
 Pass arguments (for example, to run a specific test):
 
 ```bash
-./scripts/test.sh -only Core_HelloWorld
+./scripts/test-cpp.sh -only Core_HelloWorld
 ```
 
 Enable verbose logging:
 
 ```bash
-./scripts/test.sh -v
+./scripts/test-cpp.sh -v
 ```
 
 ## Test Structure

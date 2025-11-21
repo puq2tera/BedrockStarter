@@ -16,7 +16,6 @@ check_root
 # Get the project directory
 PROJECT_DIR=$(get_project_dir)
 BEDROCK_DIR="$PROJECT_DIR/Bedrock"
-API_DIR="$PROJECT_DIR/server/api"
 INSTALL_DIR="/opt/bedrock"
 DATA_DIR="/var/lib/bedrock"
 

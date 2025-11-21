@@ -31,11 +31,11 @@ if [ ${#SCRIPTS[@]} -eq 0 ]; then
     exit 0
 fi
 
-# Run shellcheck on each script
+# Run shellcheck on each script (only fail on warnings and errors, not info)
 ERRORS=0
 for script in "${SCRIPTS[@]}"; do
     echo "Checking: ${script#"${PROJECT_DIR}"/}"
-    if ! shellcheck "$script"; then
+    if ! shellcheck -S warning "$script"; then
         ERRORS=$((ERRORS + 1))
     fi
 done

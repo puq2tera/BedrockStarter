@@ -322,12 +322,22 @@ Core plugin smoke tests live in `server/core/test`.
 
 ```bash
 # Build and run all tests (works on host or inside the VM)
-./scripts/test.sh
+./scripts/test-cpp.sh
 
 # Run a single test or enable verbose logging
-./scripts/test.sh -only Core_HelloWorld
-./scripts/test.sh -v
+./scripts/test-cpp.sh -only Core_HelloWorld
+./scripts/test-cpp.sh -v
 ```
+
+## Continuous Integration
+
+GitHub Actions workflows run automatically on pull requests:
+
+- **Shellcheck** - Lints all shell scripts in `scripts/`
+- **C++ Tests** - Builds and runs Core plugin tests
+- **Clang-Tidy** - Static analysis on C++ code
+
+Workflows are defined in `.github/workflows/` and run when relevant files change.
 
 ## Example Queries
 
