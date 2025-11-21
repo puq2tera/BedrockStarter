@@ -299,7 +299,7 @@ multipass exec bedrock-starter -- sudo systemctl restart nginx
 1. Create a new command class in `server/core/commands/`:
    ```cpp
    class MyCommand : public BedrockCommand {
-       // Implement peekCommand() and processCommand()
+       // Implement peek() and process()
    };
    ```
 
@@ -315,6 +315,28 @@ multipass exec bedrock-starter -- sudo systemctl restart nginx
    multipass exec bedrock-starter -- bash -c 'cd /opt/bedrock/server/core && ninja'
    multipass exec bedrock-starter -- sudo systemctl restart bedrock
    ```
+
+#### Peek vs. Process
+
+Bedrock commands have two main lifecycle methods: `peek()` and `process()`.
+
+**Flow:**
+1. Request arrives at a node (e.g., a follower).
+2. **`peek()` is run.**
+   - If it returns `true`: Command is finished, response is sent.
+   - If it returns `false`: Command is escalated to the leader.
+3. **On the leader:**
+   - **`peek()` is run again.**
+     - If it returns `true`: Command is finished, response is sent.
+     - If it returns `false`: **`process()` is run.**
+
+**Why?**
+- **Load Reduction:** `peek()` allows read-only commands or validation to run on followers, reducing load on the leader.
+- **Read Commands:** Should define `peek()` and always return `true`.
+- **Write Commands:**
+  - Can use `peek()` for validation. If invalid, throw an error (saving leader load).
+  - If valid, return `false` to escalate to the leader for the actual write in `process()`.
+  - `process()` is only run on the leader and is the only place writes to the DB are allowed.
 
 ## Running Tests
 
