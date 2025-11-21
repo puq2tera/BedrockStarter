@@ -6,10 +6,9 @@
 declare(strict_types=1);
 
 require __DIR__ . '/vendor/autoload.php';
-use Expensify\Bedrock\Client;
-use Monolog\Logger;
-use Monolog\Handler\SyslogHandler;
-use BedrockStarter\Log;
+
+use BedrockStarter\Bedrock;
+use BedrockStarter\Request;
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -22,74 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-function callBedrock(string $method, array $data = []): array {
-    $pluginLogger = new Logger("BedrockStarterPlugin");
-    $pluginSyslogHandler = new SyslogHandler("bedrock-starter-plugin");
-    $pluginLogger->pushHandler($pluginSyslogHandler);
-    $client = Client::getInstance([
-        'clusterName' => 'bedrock-starter',
-        'mainHostConfigs' => ['127.0.0.1' => ['port' => 8888]],
-        'failoverHostConfigs' => ['127.0.0.1' => ['port' => 8888]],
-        'connectionTimeout' => 1,
-        'readTimeout' => 300,
-        'maxBlackListTimeout' => 60,
-        'logger' => $pluginLogger,
-        'commandPriority' => Client::PRIORITY_NORMAL,
-        'bedrockTimeout' => 300,
-        'writeConsistency' => 'ASYNC',
-        'logParam' =>  null,
-        'stats' => null,
-    ]);
-
-    try {
-        Log::info("Calling bedrock method {$method}", ['data' => $data]);
-        $response = $client->call($method, $data);
-        if (isset($response["code"]) && $response["code"] == 200) {
-            // Bedrock returns data in 'headers' for commands that set response headers
-            // and in 'body' for commands that return content
-            if (isset($response['headers']) && !empty($response['headers'])) {
-                Log::info("Bedrock response headers received for {$method}", ['headers' => $response['headers']]);
-                return $response['headers'];
-            }
-            if (isset($response['body']) && !empty($response['body'])) {
-                Log::info("Bedrock response body received for {$method}", ['body' => $response['body']]);
-                return $response['body'];
-            }
-            return [];
-        } else {
-            // Try to parse status code from error message
-            $statusCode = isset($response['codeLine']) ? intval($response['codeLine']) : 500;
-            if ($statusCode > 0) {
-                http_response_code($statusCode);
-            }
-
-            Log::error("Received error response from Bedrock for {$method}", ['response' => $response]);
-            return ['error' => $response['codeLine'] ?? 'Unknown error'];
-        }
-    } catch (\Exception $exception) {
-        Log::error("Exception while calling Bedrock method {$method}", ['exception' => $exception->getMessage()]);
-        return ["error" => "Error connecting to Bedrock", "message" => $exception->getMessage()];
-    }
-}
-
-function readRequestData(): array {
-    if (!empty($_POST)) {
-        return $_POST;
-    }
-
-    $rawInput = file_get_contents('php://input');
-    if ($rawInput === false || $rawInput === '') {
-        return [];
-    }
-
-    $decoded = json_decode($rawInput, true);
-    return is_array($decoded) ? $decoded : [];
-}
-
-
 // Simple routing
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$method = $_SERVER['REQUEST_METHOD'];
+$path = Request::getPath();
+$method = Request::getMethod();
 
 switch ($path) {
     case '/api/status':
@@ -104,24 +38,20 @@ switch ($path) {
         break;
 
     case '/api/hello':
-        $name = $_GET['name'] ?? $_POST['name'] ?? 'World';
-
-        echo json_encode(callBedrock("HelloWorld", ["name" => $name]));
+        $name = Request::getString('name', 'World');
+        echo json_encode(Bedrock::call("HelloWorld", ["name" => $name]));
         break;
 
     case '/api/messages':
         if ($method === 'GET') {
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : null;
-            if ($limit !== null) {
-                $limit = max(1, min(100, $limit));
-            }
+            $limit = Request::getInt('limit', null, 1, 100);
 
             $params = [];
             if ($limit !== null) {
                 $params['limit'] = (string) $limit;
             }
 
-            $bedrockResponse = callBedrock("GetMessages", $params);
+            $bedrockResponse = Bedrock::call("GetMessages", $params);
             if (isset($bedrockResponse['messages'])) {
                 $decodedMessages = json_decode($bedrockResponse['messages'], true);
                 if (is_array($decodedMessages)) {
@@ -134,17 +64,9 @@ switch ($path) {
         }
 
         if ($method === 'POST') {
-            $data = readRequestData();
-            $name = trim((string) ($data['name'] ?? ''));
-            $message = trim((string) ($data['message'] ?? ''));
-
-            if ($name === '' || $message === '') {
-                http_response_code(400);
-                echo json_encode(['error' => 'Both name and message are required']);
-                break;
-            }
-
-            echo json_encode(callBedrock("CreateMessage", [
+            $name = Request::requireString('name');
+            $message = Request::requireString('message');
+            echo json_encode(Bedrock::call("CreateMessage", [
                 'name' => $name,
                 'message' => $message,
             ]));
