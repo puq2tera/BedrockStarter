@@ -314,21 +314,28 @@ Workflows are defined in `.github/workflows/` and run when relevant files change
 
 ## Build Configuration
 
-The C++ build system uses modern tooling for maximum performance:
+This section summarizes how C++ code is built in the VM.
 
-**Compilation Speed:**
-- **apt-fast**: Parallel package downloads (up to 10x faster)
-- **ccache**: Compiler caching (2GB compressed cache)
-- **Clang**: Modern C++20 compiler with libc++ (matches Bedrock)
-- **mold linker**: Ultra-fast linking (5-10x faster than gold/bfd)
+- **Toolchain**
+  - **Compiler**: `clang` / `clang++` (C++20, libc++), configured in `scripts/setup.sh`
+  - **Build systems**: CMake + Ninja for the Core plugin and tests; GNU Make for the upstream Bedrock submodule
+  - **Linker**: `mold` via `-fuse-ld=mold` flags in `server/core/CMakeLists.txt`
 
-**Build Modes:**
-- **Debug builds**: AddressSanitizer + UndefinedBehaviorSanitizer
-- **Release builds**: Link-time optimization (LTO) for maximum performance
+- **Core plugin & tests (`server/core`)**
+  - CMake project root: `server/core/CMakeLists.txt`
+  - Local dev build directory: `server/core/.build`
+  - Installed plugin build directory in the VM: `/opt/bedrock/server/core/.build`
+  - Default flags:
+    - **Debug**: `-O0 -g` with AddressSanitizer and UndefinedBehaviorSanitizer
+    - **Release**: `-O3 -DNDEBUG` with LTO
 
-**Performance Benefits:**
-- **First build**: Standard compile time, populates caches
-- **Subsequent builds**: Near-instant with ccache hits
+- **Bedrock submodule (`Bedrock/`)**
+  - Built with the upstream Makefile: `make bedrock --jobs $(nproc)` (run automatically by `scripts/setup.sh` and on demand by `scripts/test-cpp.sh`)
+  - Installed under `/opt/bedrock/Bedrock` by `scripts/setup.sh`
+
+- **Caching and packages (inside the VM)**
+  - `apt-fast` is used for package installs
+  - `ccache` is configured with a shared cache in `/var/cache/ccache` (2GB, compressed)
 
 ## Why Multipass?
 
