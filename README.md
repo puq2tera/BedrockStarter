@@ -273,7 +273,6 @@ multipass exec bedrock-starter -- sudo systemctl restart nginx
 
 Bedrock commands have two main lifecycle methods: `peek()` and `process()`.
 
-**Flow:**
 1. Request arrives at a node (e.g., a follower).
 2. **`peek()` is run.**
    - If it returns `true`: Command is finished, response is sent.
@@ -283,7 +282,6 @@ Bedrock commands have two main lifecycle methods: `peek()` and `process()`.
      - If it returns `true`: Command is finished, response is sent.
      - If it returns `false`: **`process()` is run.**
 
-**Why?**
 - **Load Reduction:** `peek()` allows read-only commands or validation to run on followers, reducing load on the leader.
 - **Read Commands:** Should define `peek()` and always return `true`.
 - **Write Commands:**
@@ -293,7 +291,7 @@ Bedrock commands have two main lifecycle methods: `peek()` and `process()`.
 
 ## Running Tests
 
-Core plugin smoke tests live in `server/core/test`.
+Core plugin unit tests live in `server/core/test`.
 
 ```bash
 # Build and run all tests (works on host or inside the VM)
@@ -313,120 +311,6 @@ GitHub Actions workflows run automatically on pull requests:
 - **Clang-Tidy** - Static analysis on C++ code
 
 Workflows are defined in `.github/workflows/` and run when relevant files change.
-
-## Example Queries
-
-### Basic SQL
-
-Connect to Bedrock:
-```bash
-VM_IP=$(multipass info bedrock-starter | grep IPv4 | awk '{print $2}')
-nc $VM_IP 8888
-```
-
-Then run SQL queries:
-```
-Query: CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);
-Query: INSERT INTO users (name) VALUES ('Alice'), ('Bob');
-Query: SELECT * FROM users;
-```
-
-### JSON Output
-
-```
-Query
-query: SELECT * FROM users;
-format: json
-```
-
-### Using MySQL Client
-
-```bash
-VM_IP=$(multipass info bedrock-starter | grep IPv4 | awk '{print $2}')
-mysql -h $VM_IP -P 8888
-```
-
-## File Locations
-
-- **Bedrock**: `/opt/bedrock/Bedrock/`
-- **Core Plugin**: `/opt/bedrock/server/core/`
-- **API**: `/opt/bedrock/server/api/`
-- **Database**: `/var/lib/bedrock/bedrock.db`
-- **Service Config**: `/etc/systemd/system/bedrock.service` (source: `server/config/bedrock.service`)
-- **Nginx Config**: `/etc/nginx/sites-available/bedrock-api` (source: `server/config/nginx.conf`)
-- **Mounted Project**: `/bedrock-starter/` (synced with host)
-- **Logs**: `journalctl -u bedrock` and `/var/log/nginx/`
-
-## Troubleshooting
-
-### VM Won't Start
-
-```bash
-# Check Multipass status
-multipass list
-
-# Check VM info
-multipass info bedrock-starter
-
-# View VM logs
-multipass get local.privileged
-```
-
-### Service Won't Start
-
-```bash
-# Check service status
-multipass exec bedrock-starter -- sudo systemctl status bedrock
-
-# View detailed logs
-multipass exec bedrock-starter -- sudo journalctl -u bedrock -n 50
-```
-
-### Plugin Not Loading
-
-```bash
-# Verify plugin library exists
-multipass exec bedrock-starter -- ls -la /opt/bedrock/server/core/.build/lib/Core.so
-
-# Check LD_LIBRARY_PATH
-multipass exec bedrock-starter -- sudo systemctl show bedrock | grep Environment
-```
-
-### API Not Responding
-
-```bash
-# Check nginx and PHP-FPM
-multipass exec bedrock-starter -- sudo systemctl status nginx
-multipass exec bedrock-starter -- sudo systemctl status php8.4-fpm
-
-# Test PHP-FPM socket
-multipass exec bedrock-starter -- ls -la /run/php/php8.4-fpm.sock
-```
-
-### Mount Issues
-
-If file syncing isn't working:
-
-```bash
-# Check mount status
-multipass info bedrock-starter
-
-# Remount if needed
-multipass unmount bedrock-starter
-multipass mount . bedrock-starter:/bedrock-starter
-```
-
-### Architecture Issues
-
-If you're on an ARM Mac and want to use x86 Ubuntu (for compatibility testing):
-
-```bash
-# Delete existing VM
-multipass delete bedrock-starter --purge
-
-# Launch with x86 image (slower due to emulation)
-multipass launch ubuntu/amd64 --name bedrock-starter --memory 4G --cpus 4 --cloud-init multipass.yaml
-```
 
 ## Build Configuration
 
