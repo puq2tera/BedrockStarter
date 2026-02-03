@@ -76,8 +76,22 @@ apt-fast install -y \
     php8.4-curl \
     php8.4-mbstring \
     php8.4-apcu \
+    php8.4-zip \
     nginx \
-    curl
+    curl \
+    unzip \
+    p7zip-full \
+    7zip
+
+# Restart PHP-FPM (if present) and verify zip extension
+info "Verifying PHP zip support..."
+systemctl restart php8.4-fpm || true
+if php -m | grep -qi '^zip$'; then
+    success "✓ PHP zip extension enabled"
+else
+    info "PHP zip extension not listed in php -m; checking phpinfo..."
+    php -i | grep -qi 'zip support' && success "✓ PHP zip support detected" || { echo "ERROR: PHP zip extension missing"; exit 1; }
+fi
 
 # Install Composer
 info "[7/10] Installing Composer..."
@@ -155,13 +169,31 @@ ln -sf /etc/nginx/sites-available/bedrock-api /etc/nginx/sites-enabled/bedrock-a
 rm -f /etc/nginx/sites-enabled/default
 systemctl enable nginx.service
 
-# Install PHP dependencies
-info "Installing PHP dependencies..."
-cd "$INSTALL_DIR/server/api"
-composer install --no-dev --optimize-autoloader
+# Install PHP dependencies (run as bedrock user to avoid root-owned vendor files)
+info "Installing PHP dependencies via Composer..."
+API_DIR="$INSTALL_DIR/server/api"
 
-# Set permissions for PHP files
-chown -R www-data:www-data "$INSTALL_DIR/server/api"
+# Ensure bedrock user owns the API directory (especially vendor/) before running composer
+chown -R bedrock:bedrock "$API_DIR"
+
+sudo -u bedrock -H bash -lc "
+  set -e
+  export COMPOSER_HOME=/tmp/composer
+  mkdir -p \"$COMPOSER_HOME\"
+  cd \"$API_DIR\"
+  composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+"
+
+# Permissions: keep code owned by bedrock; allow webserver group access; ensure runtime dirs writable
+chgrp -R www-data "$API_DIR" || true
+find "$API_DIR" -type d -exec chmod 2755 {} \;
+find "$API_DIR" -type f -exec chmod 0644 {} \;
+for d in "$API_DIR/storage" "$API_DIR/bootstrap/cache"; do
+  if [[ -d "$d" ]]; then
+    chown -R bedrock:www-data "$d"
+    chmod -R 2775 "$d"
+  fi
+done
 
 echo
 success "=========================================="
